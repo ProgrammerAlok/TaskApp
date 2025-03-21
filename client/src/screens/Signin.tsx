@@ -7,14 +7,22 @@ const Signin = () => {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false); // <-- Added loading state
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const data = await signIn({ email, password });
-      // @ts-ignore
-      if (data?.success) {
-        navigate("/");
+      setLoading(true); // Start loading
+      try {
+        const data = await signIn({ email, password });
+        // @ts-ignore
+        if (data?.success) {
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Sign in error:", error);
+      } finally {
+        setLoading(false); // Stop loading
       }
     },
     [email, navigate, password, signIn]
@@ -56,9 +64,34 @@ const Signin = () => {
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={loading}
+              className={`w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg transition-colors ${
+                loading ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"
+              }`}
             >
-              Sign In
+              {loading && (
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4l3.5-3.5L12 4v4a8 8 0 01-8 8z"
+                  ></path>
+                </svg>
+              )}
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
           <p className="text-sm text-gray-500 text-center mt-4">

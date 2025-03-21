@@ -78,7 +78,24 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
-  const signUp = useCallback(async () => {}, []);
+  const signUp = useCallback(
+    async (data: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+    }) => {
+      try {
+        const response = await axiosInstance.post(endpoints.auth.signup, data);
+        if (response.data.success) {
+          return response.data;
+        }
+      } catch (error) {
+        console.error("Error signing up:", error);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!user) {

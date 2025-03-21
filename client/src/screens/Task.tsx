@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthProvider";
 import axiosInstance, { endpoints } from "../apis";
 import { FiLogOut, FiEdit, FiTrash, FiSave } from "react-icons/fi";
-import { ImSpinner2 } from "react-icons/im"; // spinner icon
+import { ImSpinner2 } from "react-icons/im";
 
 interface Task {
   _id: string;
@@ -17,9 +17,10 @@ export default function Task() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [loading, setLoading] = useState({
+    fetch: true,
     add: false,
     update: false,
-    deleteId: "", // to track which delete button is loading
+    deleteId: "",
   });
 
   const addTask = useCallback(async () => {
@@ -102,8 +103,15 @@ export default function Task() {
   );
 
   const fetchAllTask = useCallback(async () => {
-    const { data } = await axiosInstance.get(endpoints.task.get);
-    setTasks(data.data);
+    setLoading((prev) => ({ ...prev, fetch: true }));
+    try {
+      const { data } = await axiosInstance.get(endpoints.task.get);
+      setTasks(data.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    } finally {
+      setLoading((prev) => ({ ...prev, fetch: false }));
+    }
   }, []);
 
   useEffect(() => {
@@ -148,117 +156,137 @@ export default function Task() {
         </div>
 
         <ul className="space-y-4">
-          {tasks.map((task) => (
-            <li
-              key={task._id}
-              className="flex justify-between items-center bg-gray-100 p-3 rounded-lg shadow-sm hover:shadow-md transition"
-            >
-              <div className="flex items-center gap-3 w-full">
-                <button
-                  onClick={() => toggleStatus(task._id)}
-                  disabled={loading.update}
-                  className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                    task.status === "completed"
-                      ? "bg-green-500 border-green-500"
-                      : "border-gray-400"
-                  } ${loading.update ? "opacity-60 cursor-not-allowed" : ""}`}
-                >
-                  {task.status === "completed" && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                </button>
+          {/* Skeleton while fetching */}
+          {loading.fetch &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <li
+                key={i}
+                className="flex justify-between items-center bg-gray-100 p-3 rounded-lg animate-pulse"
+              >
+                <div className="flex items-center gap-3 w-full">
+                  <div className="w-5 h-5 bg-gray-300 rounded-full"></div>
+                  <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-5 h-5 bg-gray-300 rounded"></div>
+                  <div className="w-5 h-5 bg-gray-300 rounded"></div>
+                </div>
+              </li>
+            ))}
 
-                {editingTaskId === task._id ? (
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && updateTitle(task._id)
-                    }
-                    disabled={loading.update}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    onDoubleClick={() => {
-                      setEditingTaskId(task._id);
-                      setEditingTitle(task.title);
-                    }}
-                    className={`flex-grow cursor-pointer ${
-                      task.status === "completed"
-                        ? "line-through text-gray-500"
-                        : "text-gray-800"
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex gap-3 ml-3">
-                {editingTaskId === task._id ? (
+          {/* Actual tasks */}
+          {!loading.fetch &&
+            tasks.map((task) => (
+              <li
+                key={task._id}
+                className="flex justify-between items-center bg-gray-100 p-3 rounded-lg shadow-sm hover:shadow-md transition"
+              >
+                <div className="flex items-center gap-3 w-full">
                   <button
-                    onClick={() => updateTitle(task._id)}
+                    onClick={() => toggleStatus(task._id)}
                     disabled={loading.update}
-                    className={`text-green-500 hover:text-green-700 transition ${
-                      loading.update ? "opacity-60 cursor-not-allowed" : ""
-                    }`}
-                    title="Save Task"
+                    className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
+                      task.status === "completed"
+                        ? "bg-green-500 border-green-500"
+                        : "border-gray-400"
+                    } ${loading.update ? "opacity-60 cursor-not-allowed" : ""}`}
                   >
-                    {loading.update ? (
-                      <ImSpinner2 className="animate-spin" />
-                    ) : (
-                      <FiSave className="text-lg" />
+                    {task.status === "completed" && (
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
                     )}
                   </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setEditingTaskId(task._id);
-                      setEditingTitle(task.title);
-                    }}
-                    className="text-blue-500 hover:text-blue-700 transition"
-                    title="Edit Task"
-                  >
-                    <FiEdit className="text-lg" />
-                  </button>
-                )}
-                <button
-                  onClick={() => deleteTask(task._id)}
-                  disabled={loading.deleteId === task._id}
-                  className={`text-red-500 hover:text-red-700 transition ${
-                    loading.deleteId === task._id
-                      ? "opacity-60 cursor-not-allowed"
-                      : ""
-                  }`}
-                  title="Delete Task"
-                >
-                  {loading.deleteId === task._id ? (
-                    <ImSpinner2 className="animate-spin" />
+
+                  {editingTaskId === task._id ? (
+                    <input
+                      type="text"
+                      className="border rounded px-2 py-1 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && updateTitle(task._id)
+                      }
+                      disabled={loading.update}
+                      autoFocus
+                    />
                   ) : (
-                    <FiTrash className="text-lg" />
+                    <span
+                      onDoubleClick={() => {
+                        setEditingTaskId(task._id);
+                        setEditingTitle(task.title);
+                      }}
+                      className={`flex-grow cursor-pointer ${
+                        task.status === "completed"
+                          ? "line-through text-gray-500"
+                          : "text-gray-800"
+                      }`}
+                    >
+                      {task.title}
+                    </span>
                   )}
-                </button>
-              </div>
-            </li>
-          ))}
+                </div>
+
+                <div className="flex gap-3 ml-3">
+                  {editingTaskId === task._id ? (
+                    <button
+                      onClick={() => updateTitle(task._id)}
+                      disabled={loading.update}
+                      className={`text-green-500 hover:text-green-700 transition ${
+                        loading.update ? "opacity-60 cursor-not-allowed" : ""
+                      }`}
+                      title="Save Task"
+                    >
+                      {loading.update ? (
+                        <ImSpinner2 className="animate-spin" />
+                      ) : (
+                        <FiSave className="text-lg" />
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEditingTaskId(task._id);
+                        setEditingTitle(task.title);
+                      }}
+                      className="text-blue-500 hover:text-blue-700 transition"
+                      title="Edit Task"
+                    >
+                      <FiEdit className="text-lg" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deleteTask(task._id)}
+                    disabled={loading.deleteId === task._id}
+                    className={`text-red-500 hover:text-red-700 transition ${
+                      loading.deleteId === task._id
+                        ? "opacity-60 cursor-not-allowed"
+                        : ""
+                    }`}
+                    title="Delete Task"
+                  >
+                    {loading.deleteId === task._id ? (
+                      <ImSpinner2 className="animate-spin" />
+                    ) : (
+                      <FiTrash className="text-lg" />
+                    )}
+                  </button>
+                </div>
+              </li>
+            ))}
         </ul>
 
-        {tasks.length === 0 && (
+        {!loading.fetch && tasks.length === 0 && (
           <p className="text-center text-gray-400 mt-6">
             No tasks yet. Add one!
           </p>

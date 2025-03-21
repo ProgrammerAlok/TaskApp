@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthProvider";
 import axiosInstance, { endpoints } from "../apis";
 import { FiLogOut, FiEdit, FiTrash, FiSave } from "react-icons/fi";
+import { ImSpinner2 } from "react-icons/im"; // spinner icon
 
 interface Task {
   _id: string;
@@ -15,23 +16,32 @@ export default function Task() {
   const [input, setInput] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [loading, setLoading] = useState({
+    add: false,
+    update: false,
+    deleteId: "", // to track which delete button is loading
+  });
 
   const addTask = useCallback(async () => {
     if (input.trim()) {
+      setLoading((prev) => ({ ...prev, add: true }));
       try {
         const { data } = await axiosInstance.post(endpoints.task.create, {
           title: input.trim(),
         });
-        setTasks([...tasks, data.data]);
+        setTasks((prev) => [...prev, data.data]);
         setInput("");
       } catch (error) {
         console.error("Error adding task:", error);
+      } finally {
+        setLoading((prev) => ({ ...prev, add: false }));
       }
     }
-  }, [input, tasks]);
+  }, [input]);
 
   const toggleStatus = useCallback(
     async (id: string) => {
+      setLoading((prev) => ({ ...prev, update: true }));
       const status =
         tasks.find((task) => task._id === id)?.status === "completed"
           ? "pending"
@@ -41,15 +51,20 @@ export default function Task() {
           taskId: id,
           status,
         });
-        setTasks(tasks.map((task) => (task._id === id ? data.data : task)));
+        setTasks((prev) =>
+          prev.map((task) => (task._id === id ? data.data : task))
+        );
       } catch (error) {
         console.error("Error updating task status:", error);
+      } finally {
+        setLoading((prev) => ({ ...prev, update: false }));
       }
     },
     [tasks]
   );
 
   const deleteTask = useCallback(async (id: string) => {
+    setLoading((prev) => ({ ...prev, deleteId: id }));
     try {
       const { data } = await axiosInstance.delete(endpoints.task.delete(id));
       if (data.success) {
@@ -57,22 +72,29 @@ export default function Task() {
       }
     } catch (error) {
       console.error("Error deleting task:", error);
+    } finally {
+      setLoading((prev) => ({ ...prev, deleteId: "" }));
     }
   }, []);
 
   const updateTitle = useCallback(
     async (id: string) => {
       if (editingTitle.trim()) {
+        setLoading((prev) => ({ ...prev, update: true }));
         try {
           const { data } = await axiosInstance.put(endpoints.task.update, {
             taskId: id,
             title: editingTitle.trim(),
           });
-          setTasks(tasks.map((task) => (task._id === id ? data.data : task)));
+          setTasks((prev) =>
+            prev.map((task) => (task._id === id ? data.data : task))
+          );
           setEditingTaskId(null);
           setEditingTitle("");
         } catch (error) {
           console.error("Error updating title:", error);
+        } finally {
+          setLoading((prev) => ({ ...prev, update: false }));
         }
       }
     },
@@ -112,12 +134,16 @@ export default function Task() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addTask()}
+            disabled={loading.add}
           />
           <button
             onClick={addTask}
-            className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg hover:opacity-90 transition"
+            disabled={loading.add}
+            className={`flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg transition ${
+              loading.add ? "opacity-70 cursor-not-allowed" : "hover:opacity-90"
+            }`}
           >
-            Add
+            {loading.add ? <ImSpinner2 className="animate-spin" /> : "Add"}
           </button>
         </div>
 
@@ -130,11 +156,12 @@ export default function Task() {
               <div className="flex items-center gap-3 w-full">
                 <button
                   onClick={() => toggleStatus(task._id)}
+                  disabled={loading.update}
                   className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
                     task.status === "completed"
                       ? "bg-green-500 border-green-500"
                       : "border-gray-400"
-                  }`}
+                  } ${loading.update ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {task.status === "completed" && (
                     <svg
@@ -162,6 +189,7 @@ export default function Task() {
                     onKeyDown={(e) =>
                       e.key === "Enter" && updateTitle(task._id)
                     }
+                    disabled={loading.update}
                     autoFocus
                   />
                 ) : (
@@ -185,10 +213,17 @@ export default function Task() {
                 {editingTaskId === task._id ? (
                   <button
                     onClick={() => updateTitle(task._id)}
-                    className="text-green-500 hover:text-green-700 transition"
+                    disabled={loading.update}
+                    className={`text-green-500 hover:text-green-700 transition ${
+                      loading.update ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
                     title="Save Task"
                   >
-                    <FiSave className="text-lg" />
+                    {loading.update ? (
+                      <ImSpinner2 className="animate-spin" />
+                    ) : (
+                      <FiSave className="text-lg" />
+                    )}
                   </button>
                 ) : (
                   <button
@@ -204,10 +239,19 @@ export default function Task() {
                 )}
                 <button
                   onClick={() => deleteTask(task._id)}
-                  className="text-red-500 hover:text-red-700 transition"
+                  disabled={loading.deleteId === task._id}
+                  className={`text-red-500 hover:text-red-700 transition ${
+                    loading.deleteId === task._id
+                      ? "opacity-60 cursor-not-allowed"
+                      : ""
+                  }`}
                   title="Delete Task"
                 >
-                  <FiTrash className="text-lg" />
+                  {loading.deleteId === task._id ? (
+                    <ImSpinner2 className="animate-spin" />
+                  ) : (
+                    <FiTrash className="text-lg" />
+                  )}
                 </button>
               </div>
             </li>

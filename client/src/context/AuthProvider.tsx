@@ -10,7 +10,7 @@ import { User } from "../types/User";
 import axiosInstance, { endpoints } from "../apis";
 
 type AuthContextType = {
-  user: User | null;
+  user: User | null | undefined;
   signIn: (credentials: {
     email: string;
     password: string;
@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
 type AuthProviderProps = PropsWithChildren;
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null | undefined>();
 
   const handleFetchUser = useCallback(async () => {
     try {
@@ -42,6 +42,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       setUser(response.data);
     } catch (error) {
       console.error(error);
+      setUser(null);
     }
   }, []);
 
@@ -71,6 +72,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.error("Error signing in:", error);
+        setUser(null);
       }
     },
     []
@@ -79,7 +81,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const signUp = useCallback(async () => {}, []);
 
   useEffect(() => {
-    if (user === null) {
+    if (!user) {
       handleFetchUser();
     }
   }, [handleFetchUser, user]);

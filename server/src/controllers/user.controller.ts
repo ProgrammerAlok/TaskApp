@@ -52,8 +52,8 @@ export const loginUser = asyncHandler(
         // expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
         maxAge: 1000 * 60 * 60 * 24,
         httpOnly: true,
-        // sameSite: "none",
-        secure: true,
+        sameSite: "none",
+        // secure: true,
       })
       .status(200)
       .json(

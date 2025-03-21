@@ -1,8 +1,5 @@
 import app from "./app";
 import { connectDB } from "./config/dbConnect";
-import { config } from "dotenv";
-
-config();
 
 const PORT = process.env.PORT || 8080;
 

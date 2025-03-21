@@ -35,7 +35,7 @@ const routes = createBrowserRouter([
 
 const App = () => {
   return (
-    <AuthProvider isSignedIn={false}>
+    <AuthProvider>
       <RouterProvider router={routes} />;
     </AuthProvider>
   );
